@@ -10,8 +10,10 @@
 
 struct args {
     const char *serial;
+    const char *crop;
     SDL_bool help;
     SDL_bool version;
+    SDL_bool show_touches;
     Uint16 port;
     Uint16 max_size;
     Uint32 bit_rate;
@@ -27,6 +29,12 @@ static void usage(const char *arg0) {
         "        Encode the video at the given bit-rate, expressed in bits/s.\n"
         "        Unit suffixes are supported: 'K' (x1000) and 'M' (x1000000).\n"
         "        Default is %d.\n"
+        "\n"
+        "    -c, --crop width:height:x:y\n"
+        "        Crop the device screen on the server.\n"
+        "        The values are expressed in the device natural orientation\n"
+        "        (typically, portrait for a phone, landscape for a tablet).\n"
+        "        Any --max-size value is computed on the cropped size.\n"
         "\n"
         "    -h, --help\n"
         "        Print this help.\n"
@@ -44,6 +52,10 @@ static void usage(const char *arg0) {
         "    -s, --serial\n"
         "        The device serial number. Mandatory only if several devices\n"
         "        are connected to adb.\n"
+        "\n"
+        "    -t, --show-touches\n"
+        "        Enable \"show touches\" on start, disable on quit.\n"
+        "        It only shows physical touches (not clicks from scrcpy).\n"
         "\n"
         "    -v, --version\n"
         "        Print the version of scrcpy.\n"
@@ -70,13 +82,16 @@ static void usage(const char *arg0) {
         "    Right-click (when screen is on)\n"
         "        click on BACK\n"
         "\n"
-        "    Ctrl+m\n"
+        "    Ctrl+s\n"
         "        click on APP_SWITCH\n"
         "\n"
-        "    Ctrl+'+'\n"
+        "    Ctrl+m\n"
+        "        click on MENU\n"
+        "\n"
+        "    Ctrl+Up\n"
         "        click on VOLUME_UP\n"
         "\n"
-        "    Ctrl+'-'\n"
+        "    Ctrl+Down\n"
         "        click on VOLUME_DOWN\n"
         "\n"
         "    Ctrl+p\n"
@@ -90,6 +105,9 @@ static void usage(const char *arg0) {
         "\n"
         "    Ctrl+i\n"
         "        enable/disable FPS counter (print frames/second in logs)\n"
+        "\n"
+        "    Drag & drop APK file\n"
+        "        install APK from computer\n"
         "\n",
         arg0,
         DEFAULT_BIT_RATE,
@@ -180,21 +198,26 @@ static SDL_bool parse_port(char *optarg, Uint16 *port) {
 
 static SDL_bool parse_args(struct args *args, int argc, char *argv[]) {
     static const struct option long_options[] = {
-        {"bit-rate", required_argument, NULL, 'b'},
-        {"help",     no_argument,       NULL, 'h'},
-        {"max-size", required_argument, NULL, 'm'},
-        {"port",     required_argument, NULL, 'p'},
-        {"serial",   required_argument, NULL, 's'},
-        {"version",  no_argument,       NULL, 'v'},
-        {NULL,       0,                 NULL, 0  },
+        {"bit-rate",     required_argument, NULL, 'b'},
+        {"crop",         required_argument, NULL, 'c'},
+        {"help",         no_argument,       NULL, 'h'},
+        {"max-size",     required_argument, NULL, 'm'},
+        {"port",         required_argument, NULL, 'p'},
+        {"serial",       required_argument, NULL, 's'},
+        {"show-touches", no_argument,       NULL, 't'},
+        {"version",      no_argument,       NULL, 'v'},
+        {NULL,           0,                 NULL, 0  },
     };
     int c;
-    while ((c = getopt_long(argc, argv, "b:hm:p:s:v", long_options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "b:c:hm:p:s:tv", long_options, NULL)) != -1) {
         switch (c) {
             case 'b':
                 if (!parse_bit_rate(optarg, &args->bit_rate)) {
                     return SDL_FALSE;
                 }
+                break;
+            case 'c':
+                args->crop = optarg;
                 break;
             case 'h':
                 args->help = SDL_TRUE;
@@ -211,6 +234,9 @@ static SDL_bool parse_args(struct args *args, int argc, char *argv[]) {
                 break;
             case 's':
                 args->serial = optarg;
+                break;
+            case 't':
+                args->show_touches = SDL_TRUE;
                 break;
             case 'v':
                 args->version = SDL_TRUE;
@@ -238,8 +264,10 @@ int main(int argc, char *argv[]) {
 #endif
     struct args args = {
         .serial = NULL,
+        .crop = NULL,
         .help = SDL_FALSE,
         .version = SDL_FALSE,
+        .show_touches = SDL_FALSE,
         .port = DEFAULT_LOCAL_PORT,
         .max_size = DEFAULT_MAX_SIZE,
         .bit_rate = DEFAULT_BIT_RATE,
@@ -258,7 +286,9 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
+#endif
 
     if (avformat_network_init()) {
         return 1;
@@ -268,7 +298,15 @@ int main(int argc, char *argv[]) {
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
 #endif
 
-    int res = scrcpy(args.serial, args.port, args.max_size, args.bit_rate) ? 0 : 1;
+    struct scrcpy_options options = {
+        .serial = args.serial,
+        .crop = args.crop,
+        .port = args.port,
+        .max_size = args.max_size,
+        .bit_rate = args.bit_rate,
+        .show_touches = args.show_touches,
+    };
+    int res = scrcpy(&options) ? 0 : 1;
 
     avformat_network_deinit(); // ignore failure
 

@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <SDL2/SDL_assert.h>
 #include <SDL2/SDL_timer.h>
 
@@ -76,7 +77,8 @@ static SDL_bool disable_tunnel(struct server *server) {
 }
 
 static process_t execute_server(const char *serial,
-                                Uint16 max_size, Uint32 bit_rate, SDL_bool tunnel_forward) {
+                                Uint16 max_size, Uint32 bit_rate,
+                                const char *crop, SDL_bool tunnel_forward) {
     char max_size_string[6];
     char bit_rate_string[11];
     sprintf(max_size_string, "%"PRIu16, max_size);
@@ -90,6 +92,7 @@ static process_t execute_server(const char *serial,
         max_size_string,
         bit_rate_string,
         tunnel_forward ? "true" : "false",
+        crop ? crop : "",
     };
     return adb_execute(serial, cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
@@ -146,20 +149,25 @@ void server_init(struct server *server) {
 }
 
 SDL_bool server_start(struct server *server, const char *serial, Uint16 local_port,
-                      Uint16 max_size, Uint32 bit_rate) {
+                      Uint16 max_size, Uint32 bit_rate, const char *crop) {
     server->local_port = local_port;
 
     if (serial) {
         server->serial = SDL_strdup(serial);
+        if (!server->serial) {
+            return SDL_FALSE;
+        }
     }
 
     if (!push_server(serial)) {
+        SDL_free((void *) server->serial);
         return SDL_FALSE;
     }
 
     server->server_copied_to_device = SDL_TRUE;
 
     if (!enable_tunnel(server)) {
+        SDL_free((void *) server->serial);
         return SDL_FALSE;
     }
 
@@ -176,17 +184,20 @@ SDL_bool server_start(struct server *server, const char *serial, Uint16 local_po
         if (server->server_socket == INVALID_SOCKET) {
             LOGE("Could not listen on port %" PRIu16, local_port);
             disable_tunnel(server);
+            SDL_free((void *) server->serial);
             return SDL_FALSE;
         }
     }
 
     // server will connect to our server socket
-    server->process = execute_server(serial, max_size, bit_rate, server->tunnel_forward);
+    server->process = execute_server(serial, max_size, bit_rate, crop,
+                                     server->tunnel_forward);
     if (server->process == PROCESS_NONE) {
         if (!server->tunnel_forward) {
             close_socket(&server->server_socket);
         }
         disable_tunnel(server);
+        SDL_free((void *) server->serial);
         return SDL_FALSE;
     }
 
@@ -199,7 +210,7 @@ socket_t server_connect_to(struct server *server) {
     if (!server->tunnel_forward) {
         server->device_socket = net_accept(server->server_socket);
     } else {
-        Uint32 attempts = 50;
+        Uint32 attempts = 100;
         Uint32 delay = 100; // ms
         server->device_socket = connect_to_server(server->local_port, attempts, delay);
     }

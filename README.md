@@ -1,8 +1,8 @@
-# scrcpy
+# scrcpy (v1.3)
 
 This application provides display and control of Android devices connected on
-USB. It does not require any _root_ access. It works on _GNU/Linux_, _Windows_
-and _MacOS_.
+USB (or [over TCP/IP][article-tcpip]). It does not require any _root_ access.
+It works on _GNU/Linux_, _Windows_ and _MacOS_.
 
 ![screenshot](assets/screenshot-debian-600.jpg)
 
@@ -11,66 +11,20 @@ and _MacOS_.
 
 The Android part requires at least API 21 (Android 5.0).
 
-You need [adb]. It is available in the [Android SDK platform
-tools][platform-tools], or packaged in your distribution (`android-adb-tools`).
-
-On Windows, if you use the [prebuilt application](#windows), it is already
-included. Otherwise, just download the [platform-tools][platform-tools-windows]
-and extract the following files to a directory accessible from your `PATH`:
- - `adb.exe`
- - `AdbWinApi.dll`
- - `AdbWinUsbApi.dll`
-
 Make sure you [enabled adb debugging][enable-adb] on your device(s).
 
-The client requires [FFmpeg] and [LibSDL2].
-
-[adb]: https://developer.android.com/studio/command-line/adb.html
 [enable-adb]: https://developer.android.com/studio/command-line/adb.html#Enabling
-[platform-tools]: https://developer.android.com/studio/releases/platform-tools.html
-[platform-tools-windows]: https://dl.google.com/android/repository/platform-tools-latest-windows.zip
-[ffmpeg]: https://en.wikipedia.org/wiki/FFmpeg
-[LibSDL2]: https://en.wikipedia.org/wiki/Simple_DirectMedia_Layer
 
-## Build and install
 
-### System-specific steps
+## Get the app
 
-#### Linux
 
-Install the required packages from your package manager.
+### Linux
 
-##### Debian/Ubuntu
+On Linux, you typically need to [build the app manually][BUILD]. Don't worry,
+it's not that hard.
 
-```bash
-# runtime dependencies
-sudo apt install ffmpeg libsdl2-2.0.0
-
-# client build dependencies
-sudo apt install make gcc pkg-config meson \
-                 libavcodec-dev libavformat-dev libavutil-dev \
-                 libsdl2-dev
-
-# server build dependencies
-sudo apt install openjdk-8-jdk
-```
-
-##### Fedora
-
-```bash
-# enable RPM fusion free
-sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-
-# client build dependencies
-sudo dnf install SDL2-devel ffms2-devel meson gcc make
-
-# server build dependencies
-sudo dnf install java
-```
-
-##### Arch Linux
-
-Two [AUR] packages have been created by users:
+For Arch Linux, two [AUR] packages have been created by users:
 
  - [`scrcpy`](https://aur.archlinux.org/packages/scrcpy/)
  - [`scrcpy-prebuiltserver`](https://aur.archlinux.org/packages/scrcpy-prebuiltserver/)
@@ -78,57 +32,23 @@ Two [AUR] packages have been created by users:
 [AUR]: https://wiki.archlinux.org/index.php/Arch_User_Repository
 
 
-#### Windows
+### Windows
 
-For Windows, for simplicity, a prebuilt archive with all the dependencies
-(including `adb`) is available:
+For Windows, for simplicity, prebuilt archives with all the dependencies
+(including `adb`) are available:
 
- - [`scrcpy-windows-with-deps-v1.1.zip`][direct-windows-with-deps].  
-   _(SHA-256: 27eb36c15937601d1062c1dc0b45faae0e06fefea2019aadeb4fa7f76a07bb4c)_
+ - [`scrcpy-win32-v1.3.zip`][direct-win32].  
+   _(SHA-256: 51a2990e631ed469a7a86ff38107d517a91d313fb3f8327eb7bc71dde40870b5)_
+ - [`scrcpy-win64-v1.3.zip`][direct-win64].  
+   _(SHA-256: 0768a80d3d600d0bbcd220ca150ae88a3a58d1fe85c308a8c61f44480b711e43)_
 
-[direct-windows-with-deps]: https://github.com/Genymobile/scrcpy/releases/download/v1.1/scrcpy-windows-with-deps-v1.1.zip
+[direct-win32]: https://github.com/Genymobile/scrcpy/releases/download/v1.3/scrcpy-win32-v1.3.zip
+[direct-win64]: https://github.com/Genymobile/scrcpy/releases/download/v1.3/scrcpy-win64-v1.3.zip
 
-_(It's just a portable version including _dll_ copied from MSYS2.)_
+You can also [build the app manually][BUILD].
 
-Instead, you may want to build it manually. You need [MSYS2] to build the
-project. From an MSYS2 terminal, install the required packages:
 
-[MSYS2]: http://www.msys2.org/
-
-```bash
-# runtime dependencies
-pacman -S mingw-w64-x86_64-SDL2 \
-          mingw-w64-x86_64-ffmpeg
-
-# client build dependencies
-pacman -S mingw-w64-x86_64-make \
-          mingw-w64-x86_64-gcc \
-          mingw-w64-x86_64-pkg-config \
-          mingw-w64-x86_64-meson
-```
-
-For a 32 bits version, replace `x86_64` by `i686`:
-
-```bash
-# runtime dependencies
-pacman -S mingw-w64-i686-SDL2 \
-          mingw-w64-i686-ffmpeg
-
-# client build dependencies
-pacman -S mingw-w64-i686-make \
-          mingw-w64-i686-gcc \
-          mingw-w64-i686-pkg-config \
-          mingw-w64-i686-meson
-```
-
-Java (>= 7) is not available in MSYS2, so if you plan to build the server,
-install it manually and make it available from the `PATH`:
-
-```bash
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-#### Mac OS
+### Mac OS
 
 The application is available in [Homebrew]. Just install it:
 
@@ -138,106 +58,18 @@ The application is available in [Homebrew]. Just install it:
 brew install scrcpy
 ```
 
-Instead, you may want to build it manually. Install the packages:
-
-
-```bash
-# runtime dependencies
-brew install sdl2 ffmpeg
-
-# client build dependencies
-brew install pkg-config meson
-```
-
-Additionally, if you want to build the server, install Java 8 from Caskroom, and
-make it avaliable from the `PATH`:
+You need `adb`, accessible from your `PATH`. If you don't have it yet:
 
 ```bash
-brew tap caskroom/versions
-brew cask install java8
-export JAVA_HOME="$(/usr/libexec/java_home --version 1.8)"
-export PATH="$JAVA_HOME/bin:$PATH"
+brew cask install android-platform-tools
 ```
 
-#### Docker
+You can also [build the app manually][BUILD].
 
-See [pierlon/scrcpy-docker](https://github.com/pierlon/scrcpy-docker).
-
-### Common steps
-
-Install the [Android SDK] (_Android Studio_), and set `ANDROID_HOME` to
-its directory. For example:
-
-[Android SDK]: https://developer.android.com/studio/index.html
-
-```bash
-export ANDROID_HOME=~/android/sdk
-```
-
-Clone the project:
-
-```bash
-git clone https://github.com/Genymobile/scrcpy
-cd scrcpy
-```
-
-Then, build:
-
-```bash
-meson x --buildtype release --strip -Db_lto=true
-cd x
-ninja
-```
-
-You can test it from here:
-
-```bash
-ninja run
-```
-
-Or you can install it on the system:
-
-```bash
-sudo ninja install    # without sudo on Windows
-```
-
-This installs two files:
-
- - `/usr/local/bin/scrcpy`
- - `/usr/local/share/scrcpy/scrcpy-server.jar`
-
-Just remove them to "uninstall" the application.
-
-
-#### Prebuilt server
-
-Since the server binary, that will be pushed to the Android device, does not
-depend on your system and architecture, you may want to use the prebuilt binary
-instead:
-
- - [`scrcpy-server-v1.1.jar`][direct-scrcpy-server].  
-   _(SHA-256: 14826512bf38447ec94adf3b531676ce038d19e7e06757fb4e537882b17e77b3)_
-
-[direct-scrcpy-server]: https://github.com/Genymobile/scrcpy/releases/download/v1.1/scrcpy-server-v1.1.jar
-
-In that case, the build does not require Java or the Android SDK.
-
-Download the prebuilt server somewhere, and specify its path during the Meson
-configuration:
-
-```bash
-meson x --buildtype release --strip -Db_lto=true \
-    -Dprebuilt_server=/path/to/scrcpy-server.jar
-cd x
-ninja
-sudo ninja install
-```
 
 ## Run
 
-_At runtime, `adb` must be accessible from your `PATH`._
-
-If everything is ok, just plug an Android device, and execute:
+Plug an Android device, and execute:
 
 ```bash
 scrcpy
@@ -262,20 +94,23 @@ screen is smaller, or cannot decode such a high definition):
 scrcpy -m 1024
 ```
 
+The device screen may be cropped to mirror only part of the screen:
+
+```bash
+scrcpy -c 1224:1440:0:0   # 1224x1440 at offset (0,0)
+```
+
 If several devices are listed in `adb devices`, you must specify the _serial_:
 
 ```bash
 scrcpy -s 0123456789abcdef
 ```
 
-To run without installing:
+To show physical touches while scrcpy is running:
 
 ```bash
-./run x [options]
+scrcpy -t
 ```
-
-(where `x` is your build directory).
-
 
 ## Shortcuts
 
@@ -286,13 +121,15 @@ To run without installing:
  | resize window to remove black borders  | `Ctrl`+`x` \| _Double-click¹_ |
  | click on `HOME`                        | `Ctrl`+`h` \| _Middle-click_  |
  | click on `BACK`                        | `Ctrl`+`b` \| _Right-click²_  |
- | click on `APP_SWITCH`                  | `Ctrl`+`m`                    |
- | click on `VOLUME_UP`                   | `Ctrl`+`+`                    |
- | click on `VOLUME_DOWN`                 | `Ctrl`+`-`                    |
+ | click on `APP_SWITCH`                  | `Ctrl`+`s`                    |
+ | click on `MENU`                        | `Ctrl`+`m`                    |
+ | click on `VOLUME_UP`                   | `Ctrl`+`↑` _(up)_             |
+ | click on `VOLUME_DOWN`                 | `Ctrl`+`↓` _(down)_           |
  | click on `POWER`                       | `Ctrl`+`p`                    |
  | turn screen on                         | _Right-click²_                |
  | paste computer clipboard to device     | `Ctrl`+`v`                    |
  | enable/disable FPS counter (on stdout) | `Ctrl`+`i`                    |
+ | install APK from computer              | drag & drop APK file          |
 
 _¹Double-click on black borders to remove them._  
 _²Right-click turns the screen on if it was off, presses BACK otherwise._
@@ -306,6 +143,13 @@ A colleague challenged me to find a name as unpronounceable as [gnirehtet].
 
 [gnirehtet]: https://github.com/Genymobile/gnirehtet
 [`strcpy`]: http://man7.org/linux/man-pages/man3/strcpy.3.html
+
+
+## How to build?
+
+See [BUILD].
+
+[BUILD]: BUILD.md
 
 
 ## Common issues
@@ -338,5 +182,8 @@ Read the [developers page].
 
 ## Articles
 
-- [Introducing scrcpy](https://blog.rom1v.com/2018/03/introducing-scrcpy/)
-- [Scrcpy now works wirelessly](https://www.genymotion.com/blog/open-source-project-scrcpy-now-works-wirelessly/)
+- [Introducing scrcpy][article-intro]
+- [Scrcpy now works wirelessly][article-tcpip]
+
+[article-intro]: https://blog.rom1v.com/2018/03/introducing-scrcpy/
+[article-tcpip]: https://www.genymotion.com/blog/open-source-project-scrcpy-now-works-wirelessly/
